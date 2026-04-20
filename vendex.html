@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VENDEX – Vending Automatizado en Maldonado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --amber: #F59E0B;
+    --amber-light: #FCD34D;
+    --amber-dark: #B45309;
+    --bg-dark: #0A0A0A;
+    --bg-mid: #111111;
+    --bg-card: #161616;
+    --bg-card2: #1C1C1C;
+    --border: rgba(255,255,255,0.08);
+    --border-amber: rgba(245,158,11,0.3);
+    --text: #F0EDE8;
+    --text-muted: #888880;
+    --text-dim: #555550;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg-dark);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE overlay ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: 200px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* ── NAVBAR ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 0 5vw;
+    height: 68px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: background 0.4s, border-bottom 0.4s, backdrop-filter 0.4s;
+  }
+  nav.scrolled {
+    background: rgba(10,10,10,0.75);
+    backdrop-filter: blur(18px) saturate(180%);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--text); }
+  .nav-links {
+    display: flex; align-items: center; gap: 2rem;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--amber); }
+  .btn-nav {
+    background: var(--amber);
+    color: #0A0A0A;
+    border: none;
+    padding: 0.55rem 1.3rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-nav:hover { background: var(--amber-light); transform: translateY(-1px); }
+  .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
+  .hamburger span { display: block; width: 24px; height: 2px; background: var(--text); transition: all 0.3s; }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh;
+    display: flex; align-items: center;
+    padding: 120px 5vw 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-bg-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(245,158,11,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,158,11,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+  }
+  .hero-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(ellipse, rgba(245,158,11,0.12) 0%, transparent 70%);
+    right: -100px; top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .hero-content {
+    position: relative; z-index: 1;
+    max-width: 640px;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border-amber);
+    padding: 0.4rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 2rem;
+  }
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--amber);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.4); }
+  }
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    line-height: 0.92;
+    letter-spacing: 0.02em;
+    margin-bottom: 1.5rem;
+  }
+  .hero-title .accent { color: var(--amber); }
+  .hero-sub {
+    font-size: 1.15rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-width: 500px;
+    margin-bottom: 2.5rem;
+    font-weight: 300;
+  }
+  .hero-ctas { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .btn-primary {
+    display: inline-block;
+    background: var(--amber);
+    color: #0A0A0A;
+    padding: 0.9rem 2rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+  }
+  .btn-primary:hover {
+    background: var(--amber-light);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(245,158,11,0.3);
+  }
+  .btn-secondary {
+    display: inline-block;
+    background: transparent;
+    color: var(--text);
+    padding: 0.9rem 2rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, transform 0.15s;
+  }
+  .btn-secondary:hover {
+    border-color: var(--amber);
+    color: var(--amber);
+    transform: translateY(-2px);
+  }
+
+  /* Machine illustration */
+  .hero-visual {
+    position: absolute;
+    right: 5vw; top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    opacity: 0.9;
+  }
+
+  /* ── SECTIONS GENERAL ── */
+  section { position: relative; padding: 100px 5vw; }
+  .section-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 1rem;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    letter-spacing: 0.03em;
+    line-height: 1;
+    margin-bottom: 1.5rem;
+  }
+  .section-sub {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    max-width: 600px;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+  .divider {
+    width: 48px; height: 3px;
+    background: var(--amber);
+    margin: 1.5rem 0;
+  }
+
+  /* ── PROBLEMA ── */
+  #problema { background: var(--bg-mid); }
+  .problema-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    margin-top: 4rem;
+    border: 1px solid var(--border);
+  }
+  .problema-card {
+    background: var(--bg-card);
+    padding: 2.5rem;
+    border-right: 1px solid var(--border);
+    transition: background 0.3s;
+  }
+  .problema-card:last-child { border-right: none; }
+  .problema-card:hover { background: var(--bg-card2); }
+  .problema-icon {
+    width: 48px; height: 48px;
+    margin-bottom: 1.5rem;
+    opacity: 0.9;
+  }
+  .problema-card h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 1rem;
+  }
+  .problema-card ul {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 0.6rem;
+  }
+  .problema-card li {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    padding-left: 1.2rem;
+    position: relative;
+  }
+  .problema-card li::before {
+    content: '—';
+    position: absolute; left: 0;
+    color: var(--amber-dark);
+  }
+
+  /* ── CÓMO FUNCIONA ── */
+  #como { background: var(--bg-dark); }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 2rem;
+    margin-top: 4rem;
+    position: relative;
+  }
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 44px; left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-amber), transparent);
+  }
+  .step {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .step:hover {
+    border-color: var(--border-amber);
+    transform: translateY(-4px);
+  }
+  .step-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 4rem;
+    color: rgba(245,158,11,0.15);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  .step h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+  }
+  .step p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
+
+  /* ── BENEFICIOS ── */
+  #beneficios { background: var(--bg-mid); }
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-top: 4rem;
+  }
+  .benefit-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 2rem 1.5rem;
+    transition: border-color 0.3s, transform 0.3s, background 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .benefit-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 0; height: 2px;
+    background: var(--amber);
+    transition: width 0.4s ease;
+  }
+  .benefit-card:hover {
+    border-color: var(--border-amber);
+    transform: translateY(-3px);
+    background: var(--bg-card2);
+  }
+  .benefit-card:hover::after { width: 100%; }
+  .benefit-icon {
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+  .benefit-card h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  .benefit-card p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
+
+  /* ── SPECS ── */
+  #specs { background: var(--bg-dark); }
+  .specs-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    margin-top: 4rem;
+    align-items: start;
+  }
+  .specs-table {
+    border: 1px solid var(--border);
+    border-collapse: collapse;
+    width: 100%;
+  }
+  .specs-table tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .specs-table tr:last-child { border-bottom: none; }
+  .specs-table tr:hover { background: rgba(245,158,11,0.04); }
+  .specs-table td {
+    padding: 0.9rem 1.2rem;
+    font-size: 0.9rem;
+  }
+  .specs-table td:first-child {
+    color: var(--text-muted);
+    font-weight: 500;
+    width: 45%;
+    border-right: 1px solid var(--border);
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .specs-table td:last-child { color: var(--text); font-weight: 400; }
+  .specs-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── PRODUCTOS ── */
+  #productos { background: var(--bg-mid); }
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-top: 4rem;
+  }
+  .product-cat {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 1.5rem 1.2rem;
+    transition: border-color 0.3s, transform 0.3s;
+    text-align: center;
+  }
+  .product-cat:hover {
+    border-color: var(--border-amber);
+    transform: translateY(-3px);
+  }
+  .product-cat .emoji { font-size: 2rem; margin-bottom: 0.75rem; display: block; }
+  .product-cat h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--amber);
+    margin-bottom: 0.5rem;
+  }
+  .product-cat p { font-size: 0.78rem; color: var(--text-dim); line-height: 1.5; }
+  .ticket-banner {
+    margin-top: 2.5rem;
+    background: var(--bg-card2);
+    border: 1px solid var(--border-amber);
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .ticket-banner .ticket-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    color: var(--amber);
+    line-height: 1;
+  }
+  .ticket-banner p { font-size: 0.9rem; color: var(--text-muted); }
+
+  /* ── TABLA RESPONSABILIDADES ── */
+  #roles { background: var(--bg-dark); }
+  .roles-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 4rem;
+  }
+  .role-col {
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .role-col.vendex-col { border-color: var(--border-amber); }
+  .role-header {
+    padding: 1.2rem 1.5rem;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+  .role-col.vendex-col .role-header {
+    background: rgba(245,158,11,0.1);
+    border-bottom-color: var(--border-amber);
+    color: var(--amber);
+  }
+  .role-list { list-style: none; }
+  .role-list li {
+    padding: 0.85rem 1.5rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    transition: background 0.2s;
+  }
+  .role-list li:last-child { border-bottom: none; }
+  .role-list li:hover { background: rgba(255,255,255,0.02); }
+  .role-list li::before {
+    content: '✓';
+    color: var(--amber);
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .role-col:not(.vendex-col) .role-list li::before { content: '◎'; color: var(--text-dim); }
+
+  /* ── POR QUÉ ELEGIRNOS ── */
+  #porque { background: var(--bg-mid); }
+  .why-list {
+    margin-top: 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .why-item {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 2rem;
+    padding: 2rem 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+    transition: background 0.2s;
+  }
+  .why-item:first-child { border-top: 1px solid var(--border); }
+  .why-item:hover { background: rgba(245,158,11,0.02); padding-left: 8px; }
+  .why-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    color: rgba(245,158,11,0.2);
+    line-height: 1;
+  }
+  .why-content h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+  .why-content p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
+
+  /* ── CONTACTO ── */
+  #contacto {
+    background: var(--bg-dark);
+    position: relative;
+    overflow: hidden;
+  }
+  #contacto::before {
+    content: 'VENDEX';
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 25vw;
+    color: rgba(245,158,11,0.03);
+    letter-spacing: 0.05em;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .contact-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 6rem;
+    position: relative; z-index: 1;
+  }
+  .contact-info h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 4vw, 3.5rem);
+    line-height: 1;
+    margin-bottom: 1.5rem;
+  }
+  .contact-info h2 .accent { color: var(--amber); }
+  .contact-info p { color: var(--text-muted); font-size: 1rem; line-height: 1.7; margin-bottom: 2rem; font-weight: 300; }
+  .contact-detail {
+    display: flex; align-items: flex-start; gap: 1rem;
+    margin-bottom: 1.2rem;
+    font-size: 0.9rem;
+  }
+  .contact-detail-icon {
+    width: 36px; height: 36px;
+    background: rgba(245,158,11,0.1);
+    border: 1px solid var(--border-amber);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+  }
+  .contact-detail div { color: var(--text-muted); }
+  .contact-detail strong { display: block; color: var(--text); font-size: 0.85rem; margin-bottom: 0.1rem; }
+  .contact-form {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 2.5rem;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.8rem 1rem;
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: var(--amber);
+  }
+  .form-group textarea { min-height: 100px; resize: vertical; }
+  .btn-submit {
+    width: 100%;
+    background: var(--amber);
+    color: #0A0A0A;
+    border: none;
+    padding: 1rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    margin-top: 0.5rem;
+  }
+  .btn-submit:hover { background: var(--amber-light); transform: translateY(-2px); }
+  #form-success {
+    display: none;
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+  #form-success h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--amber);
+    margin-bottom: 0.5rem;
+  }
+  #form-success p { color: var(--text-muted); }
+
+  /* ── FOOTER ── */
+  footer {
+    background: #050505;
+    border-top: 1px solid var(--border);
+    padding: 3rem 5vw 2rem;
+  }
+  .footer-top {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
+  }
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    color: var(--amber);
+    letter-spacing: 0.08em;
+    text-decoration: none;
+  }
+  .footer-tagline {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: 0.5rem;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+  .footer-col h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+  .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+  .footer-col ul li a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: color 0.2s;
+  }
+  .footer-col ul li a:hover { color: var(--amber); }
+  .footer-bottom {
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .footer-bottom p { font-size: 0.8rem; color: var(--text-dim); }
+
+  /* ── REVEAL ANIMATIONS ── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .nav-links { display: none; }
+    .nav-links.open {
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 68px; left: 0; right: 0;
+      background: rgba(10,10,10,0.97);
+      backdrop-filter: blur(18px);
+      padding: 2rem 5vw;
+      border-bottom: 1px solid var(--border);
+      gap: 1.5rem;
+    }
+    .btn-nav { display: none; }
+    .hamburger { display: flex; }
+    .hero-visual { display: none; }
+    .hero-content { max-width: 100%; }
+    .specs-layout { grid-template-columns: 1fr; }
+    .roles-grid { grid-template-columns: 1fr; }
+    .contact-layout { grid-template-columns: 1fr; gap: 3rem; }
+    .footer-top { grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .form-row { grid-template-columns: 1fr; }
+    .steps::before { display: none; }
+  }
+  @media (max-width: 600px) {
+    section { padding: 70px 5vw; }
+    .footer-top { grid-template-columns: 1fr; }
+    .why-item { grid-template-columns: 60px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ────────── NAVBAR ────────── -->
+<nav id="navbar">
+  <a href="#" class="nav-logo">VEND<span>EX</span></a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#como">Cómo funciona</a></li>
+    <li><a href="#beneficios">Beneficios</a></li>
+    <li><a href="#specs">La máquina</a></li>
+    <li><a href="#productos">Productos</a></li>
+    <li><a href="#contacto" class="btn-nav">Solicitar instalación</a></li>
+  </ul>
+  <div class="hamburger" id="hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- ────────── HERO ────────── -->
+<section id="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-glow"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge">Primer operador moderno en Maldonado</div>
+    <h1 class="hero-title">
+      Tu institución,<br>
+      servicio <span class="accent">24/7.</span><br>
+      Sin costo.<br>
+      Sin gestión.
+    </h1>
+    <p class="hero-sub">
+      VENDEX instala, abastece y mantiene la máquina expendedora.
+      Vos solo ponés el espacio y el enchufe. Nosotros resolvemos todo.
+    </p>
+    <div class="hero-ctas">
+      <a href="#contacto" class="btn-primary">Quiero una máquina</a>
+      <a href="#como" class="btn-secondary">Ver cómo funciona →</a>
+    </div>
+  </div>
+
+  <!-- Machine SVG Illustration -->
+  <div class="hero-visual">
+    <svg width="280" height="500" viewBox="0 0 280 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Machine body -->
+      <rect x="20" y="20" width="240" height="460" rx="8" fill="#161616" stroke="#2a2a2a" stroke-width="1.5"/>
+      <!-- Top panel -->
+      <rect x="20" y="20" width="240" height="80" rx="8" fill="#1C1C1C" stroke="#2a2a2a" stroke-width="1"/>
+      <!-- VENDEX label on machine -->
+      <text x="140" y="68" text-anchor="middle" font-family="Bebas Neue, sans-serif" font-size="28" fill="#F59E0B" letter-spacing="4">VENDEX</text>
+      <!-- Screen -->
+      <rect x="40" y="115" width="200" height="70" rx="4" fill="#0A0A0A" stroke="#333" stroke-width="1"/>
+      <rect x="45" y="120" width="190" height="60" rx="3" fill="#0d1117"/>
+      <text x="140" y="143" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-size="10" fill="#F59E0B" letter-spacing="2">SELECCIONÁ TU PRODUCTO</text>
+      <text x="140" y="163" text-anchor="middle" font-family="Bebas Neue, sans-serif" font-size="20" fill="#F0EDE8" letter-spacing="1">$78 UYU PROM.</text>
+      <!-- LED strip -->
+      <rect x="40" y="195" width="200" height="4" rx="2" fill="#F59E0B" opacity="0.6"/>
+      <!-- Slots grid -->
+      <g opacity="0.85">
+        <!-- Row 1 -->
+        <rect x="40" y="210" width="55" height="45" rx="2" fill="#111" stroke="#222" stroke-width="1"/>
+        <rect x="103" y="210" width="55" height="45" rx="2" fill="#111" stroke="#222" stroke-width="1"/>
+        <rect x="165" y="210" width="55" height="45" rx="2" fill="#111" stroke="#222" stroke-width="1"/>
+        <!-- Row 2 -->
+        <rect x="40" y="262" width="55" height="45" rx="2" fill="#111" stroke="#222" stroke-width="1"/>
+        <rect x="103" y="262" width="55" height="45" rx="2" fill="#111" stroke="#222" stroke-width="1"/>
+        <rect x="165" y="262" width="55" height="45" rx="2" fill="#111" stroke="#222" stroke-width="1"/>
+        <!-- Row 3 -->
+        <rect x="40" y="314" width="55" height="45" rx="2" fill="#111" stroke="#222" stroke-width="1"/>
+        <rect x="103" y="314" width="55" height="45" rx="2" fill="#111" stroke="#222" stroke-width="1"/>
+        <rect x="165" y="314" width="55" height="45" rx="2" fill="#111" stroke="#222" stroke-width="1"/>
+        <!-- Products in slots -->
+        <rect x="52" y="220" width="30" height="35" rx="2" fill="#e63946" opacity="0.8"/>
+        <rect x="115" y="220" width="30" height="35" rx="2" fill="#e63946" opacity="0.6"/>
+        <rect x="177" y="220" width="30" height="35" rx="2" fill="#2a9d8f" opacity="0.7"/>
+        <rect x="52" y="272" width="30" height="35" rx="2" fill="#F59E0B" opacity="0.7"/>
+        <rect x="115" y="272" width="30" height="35" rx="2" fill="#457b9d" opacity="0.7"/>
+        <rect x="177" y="272" width="30" height="35" rx="2" fill="#2a9d8f" opacity="0.5"/>
+        <rect x="52" y="324" width="30" height="35" rx="2" fill="#F59E0B" opacity="0.5"/>
+        <rect x="115" y="324" width="30" height="35" rx="2" fill="#e63946" opacity="0.4"/>
+        <rect x="177" y="324" width="30" height="35" rx="2" fill="#457b9d" opacity="0.6"/>
+      </g>
+      <!-- Payment panel -->
+      <rect x="40" y="370" width="200" height="70" rx="4" fill="#1a1a1a" stroke="#2a2a2a" stroke-width="1"/>
+      <text x="140" y="388" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-size="8" fill="#888" letter-spacing="2">MEDIOS DE PAGO</text>
+      <rect x="55" y="393" width="35" height="22" rx="3" fill="#1C1C1C" stroke="#F59E0B" stroke-width="0.8"/>
+      <text x="72" y="408" text-anchor="middle" font-size="7" fill="#F59E0B">TARJETA</text>
+      <rect x="98" y="393" width="35" height="22" rx="3" fill="#1C1C1C" stroke="#444" stroke-width="0.8"/>
+      <text x="115" y="408" text-anchor="middle" font-size="7" fill="#888">EFECTIVO</text>
+      <rect x="141" y="393" width="35" height="22" rx="3" fill="#1C1C1C" stroke="#444" stroke-width="0.8"/>
+      <text x="158" y="408" text-anchor="middle" font-size="7" fill="#888">NAYAX</text>
+      <rect x="184" y="393" width="35" height="22" rx="3" fill="#1C1C1C" stroke="#444" stroke-width="0.8"/>
+      <text x="201" y="408" text-anchor="middle" font-size="7" fill="#888">DÉBITO</text>
+      <!-- Dispensing slot -->
+      <rect x="40" y="450" width="200" height="20" rx="3" fill="#0a0a0a" stroke="#222" stroke-width="1"/>
+      <!-- GPRS indicator -->
+      <circle cx="248" cy="32" r="4" fill="#22c55e" opacity="0.9"/>
+      <text x="236" y="36" text-anchor="end" font-size="8" fill="#22c55e">GPRS</text>
+      <!-- Ambient glow -->
+      <rect x="20" y="195" width="2" height="180" fill="#F59E0B" opacity="0.15"/>
+      <rect x="258" y="195" width="2" height="180" fill="#F59E0B" opacity="0.15"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ────────── PROBLEMA ────────── -->
+<section id="problema">
+  <div class="reveal">
+    <div class="section-label">El problema que resolvemos</div>
+    <h2 class="section-title">Necesidades que no tenían solución</h2>
+    <div class="divider"></div>
+    <p class="section-sub">En cada institución hay personas que necesitan acceso a alimentos y bebidas fuera del horario comercial. Hasta ahora, nadie lo resolvía.</p>
+  </div>
+
+  <div class="problema-grid reveal">
+    <div class="problema-card">
+      <svg class="problema-icon" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="16" r="10" stroke="#F59E0B" stroke-width="1.5"/>
+        <path d="M8 44c0-8.84 7.16-16 16-16s16 7.16 16 16" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <h3>Pacientes y visitantes</h3>
+      <ul>
+        <li>Sin acceso a snacks o bebidas en guardias largas</li>
+        <li>Kioscos cerrados de noche y madrugada</li>
+        <li>Acompañantes que pasan horas sin comer</li>
+        <li>Estrés adicional en situaciones ya difíciles</li>
+        <li>Necesidades no previstas fuera de horario</li>
+      </ul>
+    </div>
+    <div class="problema-card">
+      <svg class="problema-icon" viewBox="0 0 48 48" fill="none">
+        <rect x="8" y="20" width="32" height="24" rx="3" stroke="#F59E0B" stroke-width="1.5"/>
+        <path d="M16 20V14a8 8 0 0 1 16 0v6" stroke="#F59E0B" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="24" cy="32" r="3" fill="#F59E0B"/>
+      </svg>
+      <h3>Personal en guardia</h3>
+      <ul>
+        <li>Turnos de 12+ horas sin comida disponible</li>
+        <li>Sin tiempo para salir a buscar opciones</li>
+        <li>Cafeterías institucionales que cierran temprano</li>
+        <li>Desgaste físico por no poder hidratarse</li>
+        <li>Productividad afectada por falta de energía</li>
+      </ul>
+    </div>
+    <div class="problema-card">
+      <svg class="problema-icon" viewBox="0 0 48 48" fill="none">
+        <rect x="6" y="10" width="36" height="28" rx="3" stroke="#F59E0B" stroke-width="1.5"/>
+        <path d="M6 18h36M18 10v28" stroke="#F59E0B" stroke-width="1.5"/>
+        <circle cx="34" cy="30" r="5" fill="none" stroke="#F59E0B" stroke-width="1.5"/>
+        <path d="M34 27v3l2 2" stroke="#F59E0B" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <h3>La institución</h3>
+      <ul>
+        <li>No puede gestionar ni tercerizar un kiosco</li>
+        <li>No tiene personal para atender una cantina</li>
+        <li>Espacio infrautilizado sin retorno</li>
+        <li>Quejas de pacientes y empleados sin solución</li>
+        <li>Inversión de capital que no tiene sentido hacer</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── CÓMO FUNCIONA ────────── -->
+<section id="como">
+  <div class="reveal">
+    <div class="section-label">El proceso</div>
+    <h2 class="section-title">Tres pasos. Nosotros hacemos dos.</h2>
+    <div class="divider"></div>
+    <p class="section-sub">El modelo más simple del mercado. Tu institución solo da el primer paso.</p>
+  </div>
+
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-num">01</div>
+      <h3>Nos contactás</h3>
+      <p>Completás el formulario o nos escribís por email. Coordinamos una visita para evaluar el espacio ideal dentro de tu institución. Sin compromiso.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">02</div>
+      <h3>Instalamos todo nosotros</h3>
+      <p>VENDEX traslada, instala y pone en funcionamiento la máquina. Configuramos precios, cargamos productos y verificamos pagos. Vos no hacés nada.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">03</div>
+      <h3>Tu institución genera valor</h3>
+      <p>Desde ese día, tu institución tiene servicio 24/7 sin personal, sin costo y sin gestión. Nosotros reponemos, mantenemos y te enviamos reportes mensuales.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── BENEFICIOS ────────── -->
+<section id="beneficios">
+  <div class="reveal">
+    <div class="section-label">Por qué funciona</div>
+    <h2 class="section-title">Todo incluido. Siempre.</h2>
+    <div class="divider"></div>
+  </div>
+
+  <div class="benefits-grid">
+    <div class="benefit-card reveal">
+      <span class="benefit-icon">⚡</span>
+      <h3>Servicio 24/7</h3>
+      <p>La máquina opera todos los días, toda la noche, sin descanso. Sin feriados, sin ausencias.</p>
+    </div>
+    <div class="benefit-card reveal">
+      <span class="benefit-icon">$</span>
+      <h3>Sin costo para la institución</h3>
+      <p>Cero inversión, cero riesgo. La máquina, el stock y el mantenimiento son 100% de VENDEX.</p>
+    </div>
+    <div class="benefit-card reveal">
+      <span class="benefit-icon">🏭</span>
+      <h3>Productos de fábrica</h3>
+      <p>Solo productos envasados de origen, con fecha de vencimiento visible y trazabilidad garantizada.</p>
+    </div>
+    <div class="benefit-card reveal">
+      <span class="benefit-icon">📱</span>
+      <h3>Tecnología de punta</h3>
+      <p>Pantalla digital, telemetría GPRS, sistema Nayax para pagos digitales. La máquina más moderna del departamento.</p>
+    </div>
+    <div class="benefit-card reveal">
+      <span class="benefit-icon">💳</span>
+      <h3>Múltiples medios de pago</h3>
+      <p>Efectivo, tarjeta de débito, crédito y Nayax digital. Sin fricción para ningún usuario.</p>
+    </div>
+    <div class="benefit-card reveal">
+      <span class="benefit-icon">🔧</span>
+      <h3>Mantenimiento incluido</h3>
+      <p>Cualquier falla técnica es resuelta por VENDEX. La institución nunca tiene que intervenir.</p>
+    </div>
+    <div class="benefit-card reveal">
+      <span class="benefit-icon">🔄</span>
+      <h3>Reposición frecuente</h3>
+      <p>Reabastecemos 2 a 3 veces por semana para garantizar que la máquina siempre esté llena.</p>
+    </div>
+    <div class="benefit-card reveal">
+      <span class="benefit-icon">📊</span>
+      <h3>Reportes mensuales</h3>
+      <p>Informe de ventas por telemetría GPRS. Transparencia total sobre el rendimiento de la máquina.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── SPECS ────────── -->
+<section id="specs">
+  <div class="reveal">
+    <div class="section-label">La máquina</div>
+    <h2 class="section-title">Especificaciones técnicas</h2>
+    <div class="divider"></div>
+    <p class="section-sub">Equipamiento de gama profesional, instalado y mantenido por VENDEX.</p>
+  </div>
+
+  <div class="specs-layout">
+    <table class="specs-table reveal">
+      <tr><td>Capacidad</td><td>60 slots configurables</td></tr>
+      <tr><td>Refrigeración</td><td>4 °C a 8 °C (sistema activo)</td></tr>
+      <tr><td>Pantalla</td><td>Digital LCD con iluminación LED</td></tr>
+      <tr><td>Medios de pago</td><td>Efectivo · Débito · Crédito · Nayax digital</td></tr>
+      <tr><td>Conectividad</td><td>Telemetría GPRS / SIM integrada</td></tr>
+      <tr><td>Estructura</td><td>Acero anti-vandalismo, reforzado</td></tr>
+      <tr><td>Dimensiones</td><td>185 × 90 × 75 cm</td></tr>
+      <tr><td>Consumo eléctrico</td><td>220V estándar (1 enchufe)</td></tr>
+      <tr><td>Contrato</td><td>12 a 24 meses con renovación automática</td></tr>
+      <tr><td>Reposición</td><td>2–3 visitas semanales</td></tr>
+      <tr><td>Reportes</td><td>Mensuales por telemetría</td></tr>
+    </table>
+
+    <div class="specs-visual reveal">
+      <svg width="260" height="380" viewBox="0 0 260 380" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Machine outline with dimensions -->
+        <rect x="30" y="30" width="200" height="320" rx="6" fill="#111" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="6 3"/>
+        <!-- Height arrow -->
+        <line x1="15" y1="30" x2="15" y2="350" stroke="#F59E0B" stroke-width="1" opacity="0.5"/>
+        <line x1="10" y1="30" x2="20" y2="30" stroke="#F59E0B" stroke-width="1" opacity="0.5"/>
+        <line x1="10" y1="350" x2="20" y2="350" stroke="#F59E0B" stroke-width="1" opacity="0.5"/>
+        <text x="8" y="195" font-size="9" fill="#F59E0B" opacity="0.7" text-anchor="middle" transform="rotate(-90,8,195)">185 cm</text>
+        <!-- Width arrow -->
+        <line x1="30" y1="368" x2="230" y2="368" stroke="#F59E0B" stroke-width="1" opacity="0.5"/>
+        <line x1="30" y1="363" x2="30" y2="373" stroke="#F59E0B" stroke-width="1" opacity="0.5"/>
+        <line x1="230" y1="363" x2="230" y2="373" stroke="#F59E0B" stroke-width="1" opacity="0.5"/>
+        <text x="130" y="378" font-size="9" fill="#F59E0B" opacity="0.7" text-anchor="middle">90 cm</text>
+        <!-- Screen area -->
+        <rect x="50" y="50" width="160" height="60" rx="3" fill="#0d1117" stroke="#333" stroke-width="1"/>
+        <text x="130" y="83" text-anchor="middle" font-family="Bebas Neue, sans-serif" font-size="16" fill="#F59E0B">PANTALLA DIGITAL</text>
+        <!-- Grid of slots indicator -->
+        <text x="130" y="130" text-anchor="middle" font-size="9" fill="#555" letter-spacing="2">60 SLOTS</text>
+        <g opacity="0.5">
+          <rect x="50" y="140" width="44" height="32" rx="2" fill="#161616" stroke="#333" stroke-width="0.5"/>
+          <rect x="98" y="140" width="44" height="32" rx="2" fill="#161616" stroke="#333" stroke-width="0.5"/>
+          <rect x="146" y="140" width="44" height="32" rx="2" fill="#161616" stroke="#333" stroke-width="0.5"/>
+          <rect x="50" y="176" width="44" height="32" rx="2" fill="#161616" stroke="#333" stroke-width="0.5"/>
+          <rect x="98" y="176" width="44" height="32" rx="2" fill="#161616" stroke="#333" stroke-width="0.5"/>
+          <rect x="146" y="176" width="44" height="32" rx="2" fill="#161616" stroke="#333" stroke-width="0.5"/>
+          <rect x="50" y="212" width="44" height="32" rx="2" fill="#161616" stroke="#333" stroke-width="0.5"/>
+          <rect x="98" y="212" width="44" height="32" rx="2" fill="#161616" stroke="#333" stroke-width="0.5"/>
+          <rect x="146" y="212" width="44" height="32" rx="2" fill="#161616" stroke="#333" stroke-width="0.5"/>
+          <text x="130" y="265" text-anchor="middle" font-size="8" fill="#444">· · · más filas · · ·</text>
+        </g>
+        <!-- Payment panel -->
+        <rect x="50" y="270" width="160" height="50" rx="3" fill="#161616" stroke="#222" stroke-width="1"/>
+        <text x="130" y="285" text-anchor="middle" font-size="7" fill="#666" letter-spacing="1">EFECTIVO / DÉBITO / CRÉDITO / NAYAX</text>
+        <rect x="60" y="290" width="30" height="16" rx="2" fill="#111" stroke="#F59E0B" stroke-width="0.8"/>
+        <rect x="95" y="290" width="30" height="16" rx="2" fill="#111" stroke="#333" stroke-width="0.8"/>
+        <rect x="130" y="290" width="30" height="16" rx="2" fill="#111" stroke="#333" stroke-width="0.8"/>
+        <rect x="165" y="290" width="30" height="16" rx="2" fill="#111" stroke="#333" stroke-width="0.8"/>
+        <!-- Dispense tray -->
+        <rect x="50" y="326" width="160" height="14" rx="3" fill="#0a0a0a" stroke="#222" stroke-width="1"/>
+        <!-- LED glow -->
+        <rect x="30" y="118" width="200" height="3" rx="1" fill="#F59E0B" opacity="0.4"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── PRODUCTOS ────────── -->
+<section id="productos">
+  <div class="reveal">
+    <div class="section-label">El stock</div>
+    <h2 class="section-title">Productos disponibles</h2>
+    <div class="divider"></div>
+    <p class="section-sub">Selección estratégica de productos envasados de alta rotación, elegidos para entornos de alta circulación.</p>
+  </div>
+
+  <div class="products-grid">
+    <div class="product-cat reveal">
+      <span class="emoji">⚡</span>
+      <h4>Energizantes</h4>
+      <p>Monster, Red Bull, Pringles Energy</p>
+    </div>
+    <div class="product-cat reveal">
+      <span class="emoji">🥤</span>
+      <h4>Gaseosas</h4>
+      <p>Coca-Cola, Sprite, Pepsi, Fanta</p>
+    </div>
+    <div class="product-cat reveal">
+      <span class="emoji">💧</span>
+      <h4>Agua</h4>
+      <p>Nativa, Salus, Con y sin gas</p>
+    </div>
+    <div class="product-cat reveal">
+      <span class="emoji">🍫</span>
+      <h4>Chocolates</h4>
+      <p>Milka, Oreo, Portezuelo, Bon o Bon</p>
+    </div>
+    <div class="product-cat reveal">
+      <span class="emoji">🍟</span>
+      <h4>Snacks</h4>
+      <p>Lays, Maní, Barrita, Palitos</p>
+    </div>
+    <div class="product-cat reveal">
+      <span class="emoji">🧉</span>
+      <h4>Mate e infusiones</h4>
+      <p>Yerba, hierbas, tés, café</p>
+    </div>
+  </div>
+
+  <div class="ticket-banner reveal">
+    <div class="ticket-num">$78</div>
+    <div>
+      <p><strong>Ticket promedio estimado en pesos uruguayos</strong></p>
+      <p>Precio accesible para cualquier trabajador, paciente o visitante. Precios fijados por VENDEX.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── ROLES ────────── -->
+<section id="roles">
+  <div class="reveal">
+    <div class="section-label">La división de trabajo</div>
+    <h2 class="section-title">Quien hace qué</h2>
+    <div class="divider"></div>
+    <p class="section-sub">El modelo más claro del mercado. La institución aporta el espacio. VENDEX aporta todo lo demás.</p>
+  </div>
+
+  <div class="roles-grid reveal">
+    <div class="role-col vendex-col">
+      <div class="role-header">✦ VENDEX se encarga de...</div>
+      <ul class="role-list">
+        <li>Suministrar e instalar la máquina expendedora</li>
+        <li>Cargar y reponer los productos 2–3 veces por semana</li>
+        <li>Mantenimiento técnico y reparaciones sin costo</li>
+        <li>Configurar los precios y la selección de productos</li>
+        <li>Gestionar los sistemas de pago (Nayax, efectivo, tarjeta)</li>
+        <li>Proveer reportes mensuales de ventas por telemetría</li>
+        <li>Supervisión remota 24/7 vía GPRS</li>
+        <li>Renovación automática del contrato al vencimiento</li>
+        <li>Traslado al finalizar el contrato si corresponde</li>
+      </ul>
+    </div>
+    <div class="role-col">
+      <div class="role-header">◎ La institución solo aporta...</div>
+      <ul class="role-list">
+        <li>Un espacio de aproximadamente 1 m²</li>
+        <li>Un enchufe estándar de 220V</li>
+        <li>Acceso para el personal de VENDEX en reposiciones</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── POR QUÉ ELEGIRNOS ────────── -->
+<section id="porque">
+  <div class="reveal">
+    <div class="section-label">Nuestros diferenciadores</div>
+    <h2 class="section-title">Por qué VENDEX</h2>
+    <div class="divider"></div>
+  </div>
+
+  <div class="why-list">
+    <div class="why-item reveal">
+      <div class="why-num">01</div>
+      <div class="why-content">
+        <h3>El primer operador moderno en Maldonado</h3>
+        <p>VENDEX es el primer operador de vending automatizado con tecnología de última generación en el departamento de Maldonado. No imitamos modelos viejos: traemos la tecnología que ya existe en el mundo al mercado uruguayo.</p>
+      </div>
+    </div>
+    <div class="why-item reveal">
+      <div class="why-num">02</div>
+      <div class="why-content">
+        <h3>Un mercado global de USD 18.000 millones</h3>
+        <p>El vending automatizado es una industria madura y probada a nivel mundial. Uruguay está ingresando a esta dinámica ahora, lo que significa que las instituciones que adopten el modelo hoy estarán un paso adelante.</p>
+      </div>
+    </div>
+    <div class="why-item reveal">
+      <div class="why-num">03</div>
+      <div class="why-content">
+        <h3>Cero gestión garantizada por contrato</h3>
+        <p>No es marketing: está escrito en el contrato. VENDEX asume toda la responsabilidad operativa. Si la máquina falla, si falta stock, si hay un problema técnico, la institución no interviene en ningún momento.</p>
+      </div>
+    </div>
+    <div class="why-item reveal">
+      <div class="why-num">04</div>
+      <div class="why-content">
+        <h3>Transparencia total con datos reales</h3>
+        <p>Cada mes la institución recibe un reporte de ventas generado por telemetría GPRS. Datos reales, trazables, sin intermediarios. Información que permite entender el comportamiento del espacio.</p>
+      </div>
+    </div>
+    <div class="why-item reveal">
+      <div class="why-num">05</div>
+      <div class="why-content">
+        <h3>Compromiso a largo plazo con el territorio</h3>
+        <p>VENDEX opera en Maldonado y está comprometida con el desarrollo del modelo en la región. Nuestros contratos de 12 a 24 meses reflejan una relación estable, no oportunista, con cada institución aliada.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── CONTACTO ────────── -->
+<section id="contacto">
+  <div class="contact-layout">
+    <div class="contact-info reveal">
+      <div class="section-label">Empezá hoy</div>
+      <h2>Instalación <span class="accent">gratuita</span> para tu institución</h2>
+      <p>Completá el formulario y un representante de VENDEX se comunica en menos de 48 horas para coordinar la visita inicial. Sin compromiso.</p>
+
+      <div class="contact-detail">
+        <div class="contact-detail-icon">✉</div>
+        <div>
+          <strong>Email</strong>
+          vendingmachinesuy@gmail.com
+        </div>
+      </div>
+      <div class="contact-detail">
+        <div class="contact-detail-icon">📍</div>
+        <div>
+          <strong>Ubicación</strong>
+          Maldonado, Uruguay
+        </div>
+      </div>
+      <div class="contact-detail">
+        <div class="contact-detail-icon">🕐</div>
+        <div>
+          <strong>Respuesta</strong>
+          Menos de 48 horas hábiles
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <div class="contact-form">
+        <div id="form-fields">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nombre *</label>
+              <input type="text" id="inp-nombre" placeholder="Tu nombre completo">
+            </div>
+            <div class="form-group">
+              <label>Institución *</label>
+              <input type="text" id="inp-institucion" placeholder="Nombre de tu organización">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Cargo</label>
+              <input type="text" id="inp-cargo" placeholder="Tu rol en la institución">
+            </div>
+            <div class="form-group">
+              <label>Teléfono</label>
+              <input type="tel" id="inp-tel" placeholder="+598 09X XXX XXX">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" id="inp-email" placeholder="tu@email.com">
+          </div>
+          <div class="form-group">
+            <label>Mensaje (opcional)</label>
+            <textarea id="inp-mensaje" placeholder="Contanos sobre tu institución, cantidad de personas, ubicación..."></textarea>
+          </div>
+          <button class="btn-submit" onclick="submitForm()">Solicitar instalación gratuita →</button>
+        </div>
+        <div id="form-success">
+          <h3>¡Solicitud enviada!</h3>
+          <p>Nos comunicaremos con vos en menos de 48 horas hábiles para coordinar la visita inicial.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── FOOTER ────────── -->
+<footer>
+  <div class="footer-top">
+    <div>
+      <a href="#" class="footer-logo">VENDEX</a>
+      <p class="footer-tagline">Vending automatizado en Maldonado, Uruguay.<br>Tu institución genera valor sin hacer nada.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navegación</h4>
+      <ul>
+        <li><a href="#como">Cómo funciona</a></li>
+        <li><a href="#beneficios">Beneficios</a></li>
+        <li><a href="#specs">La máquina</a></li>
+        <li><a href="#productos">Productos</a></li>
+        <li><a href="#porque">Por qué elegirnos</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Aplicaciones</h4>
+      <ul>
+        <li><a href="#contacto">Sanatorios y clínicas</a></li>
+        <li><a href="#contacto">Empresas y oficinas</a></li>
+        <li><a href="#contacto">Edificios corporativos</a></li>
+        <li><a href="#contacto">Instituciones educativas</a></li>
+        <li><a href="#contacto">Hoteles y complejos</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contacto</h4>
+      <ul>
+        <li><a href="mailto:vendingmachinesuy@gmail.com">vendingmachinesuy@gmail.com</a></li>
+        <li><a href="#contacto">Maldonado, Uruguay</a></li>
+        <li><a href="#contacto">Solicitar instalación</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 VENDEX. Todos los derechos reservados. Maldonado, Uruguay.</p>
+    <p style="color: var(--amber); font-family: 'Barlow Condensed'; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;">El vending moderno llegó a Maldonado</p>
+  </div>
+</footer>
+
+<script>
+  // Navbar scroll effect
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 60) navbar.classList.add('scrolled');
+    else navbar.classList.remove('scrolled');
+  });
+
+  // Mobile menu
+  function toggleMenu() {
+    document.getElementById('navLinks').classList.toggle('open');
+  }
+  document.querySelectorAll('#navLinks a').forEach(a => {
+    a.addEventListener('click', () => document.getElementById('navLinks').classList.remove('open'));
+  });
+
+  // Scroll reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), 80);
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  revealEls.forEach(el => io.observe(el));
+
+  // Staggered children reveal
+  document.querySelectorAll('.benefits-grid, .products-grid, .problema-grid, .steps, .why-list').forEach(container => {
+    const children = container.querySelectorAll('.reveal');
+    children.forEach((child, i) => {
+      child.style.transitionDelay = (i * 80) + 'ms';
+    });
+  });
+
+  // Form submit
+  function submitForm() {
+    const nombre = document.getElementById('inp-nombre').value.trim();
+    const inst = document.getElementById('inp-institucion').value.trim();
+    const email = document.getElementById('inp-email').value.trim();
+    if (!nombre || !inst || !email) {
+      alert('Por favor completá los campos obligatorios: Nombre, Institución y Email.');
+      return;
+    }
+    document.getElementById('form-fields').style.display = 'none';
+    document.getElementById('form-success').style.display = 'block';
+  }
+
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>
